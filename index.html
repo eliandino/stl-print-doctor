@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Inspect, measure, prepare, and repair STL files locally in your browser." />
+  <title>STL Print Doctor</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="STL Print Doctor home">
+      <span class="brand-mark" aria-hidden="true">⬡</span>
+      <span><strong>STL</strong> Print Doctor</span>
+    </a>
+    <div class="top-actions">
+      <span class="privacy-pill">Local processing</span>
+      <button id="themeButton" class="icon-button" title="Switch theme" aria-label="Switch color theme">☀</button>
+      <label class="button primary" for="fileInput">Open STL</label>
+      <input id="fileInput" type="file" accept=".stl,model/stl" hidden />
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="viewer-panel" aria-label="3D model viewer">
+      <div id="dropZone" class="drop-zone">
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">⬡</div>
+          <h1>Drop an STL to begin</h1>
+          <p>Inspect dimensions, find mesh problems, and export a cleaner model. Your file stays on this device.</p>
+          <label class="button primary large" for="fileInput">Choose STL file</label>
+          <small>Binary or ASCII STL · Recommended under 150 MB</small>
+        </div>
+        <div id="canvasHost" class="canvas-host"></div>
+        <div id="dropOverlay" class="drop-overlay">Drop STL to inspect</div>
+      </div>
+
+      <div id="viewerToolbar" class="viewer-toolbar hidden">
+        <div class="segmented" aria-label="View style">
+          <button class="active" data-view="solid">Solid</button>
+          <button data-view="wire">Wire</button>
+          <button data-view="xray">X-ray</button>
+          <button data-view="issues">Issues</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <button id="fitViewButton" class="tool-button" title="Fit model to view">Fit view</button>
+        <button id="screenshotButton" class="tool-button" title="Save PNG screenshot">Screenshot</button>
+      </div>
+
+      <div id="viewCube" class="view-cube hidden" aria-label="Preset camera views">
+        <button data-camera="top">TOP</button>
+        <div><button data-camera="left">L</button><button data-camera="iso">ISO</button><button data-camera="right">R</button></div>
+        <button data-camera="front">FRONT</button>
+      </div>
+
+      <div id="modelBadge" class="model-badge hidden">
+        <span id="modelName">model.stl</span><span id="fileSize">0 MB</span>
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <div class="panel-heading">
+        <div><span class="eyebrow">PRINT READINESS</span><h2 id="readinessTitle">No model loaded</h2></div>
+        <div id="scoreRing" class="score-ring"><span id="scoreValue">—</span></div>
+      </div>
+
+      <div id="statusBanner" class="status-banner neutral"><span class="status-dot"></span><span>Waiting for an STL file</span></div>
+
+      <details open>
+        <summary>Model information <span>⌄</span></summary>
+        <div class="details-body">
+          <div class="dimension-grid">
+            <label>X <div><input id="dimX" type="number" min="0.01" step="0.1" disabled /><span>mm</span></div></label>
+            <label>Y <div><input id="dimY" type="number" min="0.01" step="0.1" disabled /><span>mm</span></div></label>
+            <label>Z <div><input id="dimZ" type="number" min="0.01" step="0.1" disabled /><span>mm</span></div></label>
+          </div>
+          <label class="check-row"><input id="uniformScale" type="checkbox" checked /> Keep proportions when resizing</label>
+          <div class="stats-grid">
+            <div><span>Triangles</span><strong id="triangleStat">—</strong></div>
+            <div><span>Volume</span><strong id="volumeStat">—</strong></div>
+            <div><span>Surface</span><strong id="surfaceStat">—</strong></div>
+            <div><span>Shells</span><strong id="shellStat">—</strong></div>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Mesh diagnosis <span>⌄</span></summary>
+        <div class="details-body">
+          <div class="issue-list">
+            <button class="issue-row" data-issue="boundary"><span class="issue-icon">◌</span><span><strong>Open edges</strong><small>Boundary edges and holes</small></span><b id="boundaryCount">—</b></button>
+            <button class="issue-row" data-issue="nonmanifold"><span class="issue-icon">⌁</span><span><strong>Non-manifold edges</strong><small>Edges shared by 3+ faces</small></span><b id="nonManifoldCount">—</b></button>
+            <button class="issue-row" data-issue="degenerate"><span class="issue-icon">△</span><span><strong>Degenerate faces</strong><small>Near-zero area triangles</small></span><b id="degenerateCount">—</b></button>
+            <button class="issue-row" data-issue="duplicate"><span class="issue-icon">▱</span><span><strong>Duplicate faces</strong><small>Repeated triangles</small></span><b id="duplicateCount">—</b></button>
+          </div>
+          <button id="analyzeButton" class="button secondary full" disabled>Analyze again</button>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Print setup <span>⌄</span></summary>
+        <div class="details-body controls-stack">
+          <label>Printer profile<select id="printerSelect"><option value="256,256,256">Bambu Lab P1S · 256³ mm</option><option value="180,180,180">Bambu Lab A1 mini · 180³ mm</option><option value="220,220,250">Generic · 220 × 220 × 250</option></select></label>
+          <div class="button-pair"><button id="centerButton" class="button secondary" disabled>Center</button><button id="placeButton" class="button secondary" disabled>Place on bed</button></div>
+          <div class="rotate-row"><span>Rotate</span><button data-rotate="x" disabled>X 90°</button><button data-rotate="y" disabled>Y 90°</button><button data-rotate="z" disabled>Z 90°</button></div>
+          <label>Material<select id="materialSelect"><option value="1.24">PLA · 1.24 g/cm³</option><option value="1.27">PETG · 1.27 g/cm³</option><option value="1.04">ABS · 1.04 g/cm³</option><option value="1.21">TPU · 1.21 g/cm³</option></select></label>
+          <div class="estimate"><span>Solid weight estimate</span><strong id="weightStat">—</strong><small>Before infill, walls, and supports</small></div>
+        </div>
+      </details>
+
+      <div class="repair-zone">
+        <button id="repairButton" class="button repair full" disabled><span>✦</span> Repair mesh</button>
+        <p id="repairNote">Conservative cleanup preserves the model wherever possible.</p>
+        <button id="downloadButton" class="button primary full" disabled>Download repaired STL</button>
+        <button id="resetButton" class="text-button" disabled>Restore original</button>
+      </div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -26,10 +26,11 @@ Open `http://localhost:8000`.
 
 ## Publish with GitHub Pages
 
-1. Create a new GitHub repository and upload the complete project.
+1. Push the project to a GitHub repository.
 2. Open **Settings → Pages**.
-3. Under **Build and deployment**, choose **GitHub Actions** as the source.
-4. Push to `main`. The included workflow publishes the `dist` folder automatically.
+3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
+4. Select branch `main` and folder `/dist`, then save.
+5. GitHub publishes the site at `https://<username>.github.io/<repo>/` within a minute or two.
 
 ## Repair limitations
 
